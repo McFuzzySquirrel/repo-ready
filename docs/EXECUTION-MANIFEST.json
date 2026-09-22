@@ -1,0 +1,1641 @@
+{
+  "version": "1.0",
+  "generatedAt": "2026-09-22T21:18:58.176Z",
+  "granularity": "fine",
+  "sourceLayout": "features",
+  "repoRoot": "/home/mcfuzzysquirrel/Projects/repo-ready",
+  "harnessRoot": ".opencode",
+  "prdPath": "/home/mcfuzzysquirrel/Projects/repo-ready/docs/PRD.md",
+  "visionPath": "/home/mcfuzzysquirrel/Projects/repo-ready/docs/PRD.md",
+  "featureOrder": [
+    "Project Foundation",
+    "Scan and Detection",
+    "Tool Catalog",
+    "Probing and Version Matching",
+    "Online Enrichment",
+    "Reporting",
+    "Release and Distribution",
+    "End-to-End Validation"
+  ],
+  "progressPath": "/home/mcfuzzysquirrel/Projects/repo-ready/docs/PROGRESS.md",
+  "auditPath": "/home/mcfuzzysquirrel/Projects/repo-ready/docs/EXECUTION-AUDIT.jsonl",
+  "validationCommands": [
+    "go.mod",
+    "make build",
+    "go install"
+  ],
+  "approvalGates": {
+    "preflight": true,
+    "betweenPhases": true
+  },
+  "phases": [
+    {
+      "id": "PROJECT-FOUNDATION-1",
+      "title": "Phase 1: Module and Domain Foundations",
+      "feature": "Project Foundation",
+      "description": "```forge-task {   \"id\": \"FOUND-1\",",
+      "ownerAgents": [
+        "release-engineer",
+        "cli-engineer"
+      ],
+      "dependencies": [],
+      "approvalRequired": false,
+      "tasks": [
+        {
+          "id": "FOUND-1",
+          "title": "Initialize the Go module, layout, and build tooling",
+          "description": "Create the Go module github.com/mcfuzzysquirrel/repo-ready with a go 1.27 toolchain directive and the cmd and internal package layout. Add a Makefile with build, test, vet, and fmt targets. Add a minimal cmd/repo-ready/main.go that prints the version, and internal/version with a Version variable defaulting to dev plus a test. Keep the module dependency-free at this stage.",
+          "ownerAgent": "release-engineer",
+          "dependencies": [],
+          "expectedOutputs": [
+            "go.mod",
+            "Makefile",
+            "cmd/repo-ready/main.go",
+            "internal/version/version.go",
+            "internal/version/version_test.go"
+          ],
+          "validationCommands": [
+            "go build ./...",
+            "go test ./internal/version/...",
+            "make build"
+          ],
+          "contract": {
+            "version": 1,
+            "kind": "implementation",
+            "requirements": [
+              "FOUND-FR-01: The repository is a Go module named github.com/mcfuzzysquirrel/repo-ready with a Go 1.27 toolchain directive, the cmd/repo-ready and internal/<domain> package layout, and a Makefile providing build, test, vet, and fmt targets.",
+              "FOUND-FR-03: Build version metadata is injectable at build time via -ldflags into internal/version and defaults to the string dev when no version is injected."
+            ],
+            "acceptanceCriteria": [
+              "go build ./... succeeds on a clean checkout",
+              "The version defaults to dev and is overridable with -ldflags",
+              "make build produces a runnable binary"
+            ],
+            "constraints": [
+              "CONST-03: repo-ready ships as one static Go binary with no runtime dependencies, embedding its curated install-metadata catalog and versioning that catalog alongside the binary.",
+              "CONST-04: Linux, macOS, and Windows are first-class v1 target platforms for both runtime behavior and build artifacts."
+            ],
+            "references": [
+              "docs/features/project-foundation.md#FOUND-FR-01",
+              "docs/features/project-foundation.md#FOUND-FR-03",
+              "docs/PRD.md#CONST-03",
+              "docs/PRD.md#CONST-04"
+            ]
+          },
+          "requiredCapabilities": [
+            "repository-tools"
+          ],
+          "approvalRequired": false,
+          "sourceLines": [],
+          "produces": "work.found-1",
+          "inputs": []
+        },
+        {
+          "id": "FOUND-2",
+          "title": "Define the shared domain model",
+          "description": "Implement internal/model with Requirement (tool, constraint, source file, component, category, confidence), Component, InstalledTool (tool, version, path), Finding (requirement, installed, Status), and Report. Status is an enumerated type with exactly the values ok, missing, outdated, and unknown, and the types carry JSON tags that match the public --json schema. Do not implement detection, probing, or rendering logic here.",
+          "ownerAgent": "cli-engineer",
+          "dependencies": [
+            "FOUND-1"
+          ],
+          "expectedOutputs": [
+            "internal/model/model.go",
+            "internal/model/model_test.go"
+          ],
+          "validationCommands": [
+            "go test ./internal/model/..."
+          ],
+          "contract": {
+            "version": 1,
+            "kind": "implementation",
+            "requirements": [
+              "FOUND-FR-02: A shared internal/model package defines the domain types Requirement, Component, InstalledTool, Finding, Status with values ok|missing|outdated|unknown, and Report, with stable JSON tags that match the public --json schema."
+            ],
+            "acceptanceCriteria": [
+              "Model round-trips through JSON with stable field names",
+              "Status parsing rejects values outside ok|missing|outdated|unknown",
+              "A table-driven test covers every status value"
+            ],
+            "constraints": [],
+            "references": [
+              "docs/features/project-foundation.md#FOUND-FR-02"
+            ]
+          },
+          "requiredCapabilities": [
+            "repository-tools"
+          ],
+          "approvalRequired": false,
+          "sourceLines": [],
+          "produces": "work.found-2",
+          "inputs": [
+            "work.found-1"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "SCAN-AND-DETECTION-1",
+      "title": "Phase 1: Input Acquisition and Scanning",
+      "feature": "Scan and Detection",
+      "description": "```forge-task {   \"id\": \"SCAN-1\",",
+      "ownerAgents": [
+        "scan-engineer"
+      ],
+      "dependencies": [
+        "PROJECT-FOUNDATION-1"
+      ],
+      "approvalRequired": true,
+      "tasks": [
+        {
+          "id": "SCAN-1",
+          "title": "Resolve local paths and shallow-clone remote inputs",
+          "description": "Implement input classification and acquisition in internal/input. Classify a single argument as an existing local directory or a remote git URL. For local directories return the absolute path as the scan root without modifying it. For remotes create a 0700 temporary directory, run git clone --depth 1 into it without a shell, and return the clone path plus a cleanup function that removes the directory on every exit path including error and signal contexts. On clone failure return the git stderr and a fatal error. Do not detect requirements or probe tools here.",
+          "ownerAgent": "scan-engineer",
+          "dependencies": [],
+          "expectedOutputs": [
+            "internal/input/resolve.go",
+            "internal/input/clone.go",
+            "internal/input/input_test.go"
+          ],
+          "validationCommands": [
+            "go test ./internal/input/...",
+            "go vet ./internal/input/..."
+          ],
+          "contract": {
+            "version": 1,
+            "kind": "implementation",
+            "requirements": [
+              "SCAN-FR-01: Accept one positional input that is either an existing local directory path or a remote git URL, and classify its kind automatically without requiring an explicit flag.",
+              "SCAN-FR-02: For a local directory input, scan it in place and fully offline without modifying any file in the directory.",
+              "SCAN-FR-03: For a remote input, shallow-clone with depth 1 into a uniquely named temporary directory and remove that directory on every exit path including success, error, and signal.",
+              "SCAN-FR-04: Remote clone operations reuse the user's existing git configuration and credential helpers, never prompt for or store credentials, and on failure surface git's own stderr and cause a non-zero exit."
+            ],
+            "acceptanceCriteria": [
+              "A local directory and a remote URL are each classified correctly",
+              "The clone runs depth 1 with no shell and a 0700 temp dir",
+              "Cleanup removes the temp dir on success and on error",
+              "A clone failure returns git stderr and a fatal error"
+            ],
+            "constraints": [
+              "Never read or write credentials; rely on the ambient git configuration",
+              "CONST-02: repo-ready never reads, stores, or manages credentials; remote clone operations reuse the user's existing git configuration and credential helpers, and on failure the tool surfaces git's own error and exits non-zero without touching credentials.",
+              "CONST-09: Command probing runs binaries directly without a shell, only using known safe version-query invocations for recognized tools, with tool names validated against the bundled catalog and never interpolated into a shell string.",
+              "CONST-13: Remote repositories are shallow-cloned into a uniquely named temporary directory created with owner-only permissions (0700) and removed on every exit path including success, error, and signal; no scan ever modifies the input repository."
+            ],
+            "references": [
+              "docs/features/scan-and-detect.md#SCAN-FR-01",
+              "docs/features/scan-and-detect.md#SCAN-FR-02",
+              "docs/features/scan-and-detect.md#SCAN-FR-03",
+              "docs/features/scan-and-detect.md#SCAN-FR-04",
+              "docs/PRD.md#CONST-02",
+              "docs/PRD.md#CONST-09",
+              "docs/PRD.md#CONST-13"
+            ]
+          },
+          "requiredCapabilities": [
+            "repository-tools"
+          ],
+          "approvalRequired": false,
+          "sourceLines": [],
+          "produces": "work.scan-1",
+          "inputs": [
+            "work.found-1",
+            "work.found-2"
+          ]
+        },
+        {
+          "id": "SCAN-2",
+          "title": "Walk the tree and group requirements by component",
+          "description": "Implement internal/scan. Walk a scan root to a configurable maximum depth (default 6), skipping .git, submodule directories, a built-in denylist, and paths matched by the repository's .gitignore files. Collect candidate declarative files and group them by their containing component directory. Return the sorted component list and an explicit list of skipped paths with reasons. Do not parse file contents here.",
+          "ownerAgent": "scan-engineer",
+          "dependencies": [],
+          "expectedOutputs": [
+            "internal/scan/scanner.go",
+            "internal/scan/gitignore.go",
+            "internal/scan/denylist.go",
+            "internal/scan/scanner_test.go",
+            "testdata/scan/.gitignore",
+            "testdata/scan/nested/app/.tool-versions"
+          ],
+          "validationCommands": [
+            "go test ./internal/scan/...",
+            "go vet ./internal/scan/..."
+          ],
+          "contract": {
+            "version": 1,
+            "kind": "implementation",
+            "requirements": [
+              "SCAN-FR-05: Recursively scan the input tree to a default maximum depth of 6, skipping .git, submodules, a built-in denylist (node_modules, vendor, .venv, dist, build, and similar), and paths matched by .gitignore.",
+              "SCAN-FR-06: Group detected requirements by the component directory that declares them, and record every skipped path so the report can state that the scan was not exhaustive.",
+              "SCAN-FR-10: Detector and component results are returned in a deterministic, stable order so identical inputs produce byte-identical reports."
+            ],
+            "acceptanceCriteria": [
+              "Depth, denylist, and .gitignore exclusions are each covered by a fixture test",
+              "Skipped paths are reported with a reason",
+              "Results are deterministically ordered across repeated runs"
+            ],
+            "constraints": [
+              "Never traverse submodules or mutate the scanned tree",
+              "CONST-06: v1 does not traverse git submodules; submodule directories are skipped and reported as skipped paths.",
+              "CONST-11: A local scan and report for a typical repository completes in under 2 seconds; probe commands each have a 5 second timeout; probing uses at most 8 concurrent workers; remote clones use depth 1; directory scanning defaults to a maximum depth of 6."
+            ],
+            "references": [
+              "docs/features/scan-and-detect.md#SCAN-FR-05",
+              "docs/features/scan-and-detect.md#SCAN-FR-06",
+              "docs/features/scan-and-detect.md#SCAN-FR-10",
+              "docs/PRD.md#CONST-06",
+              "docs/PRD.md#CONST-11"
+            ]
+          },
+          "requiredCapabilities": [
+            "repository-tools"
+          ],
+          "approvalRequired": false,
+          "sourceLines": [],
+          "produces": "work.scan-2",
+          "inputs": [
+            "work.found-1",
+            "work.found-2"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "SCAN-AND-DETECTION-2",
+      "title": "Phase 2: Declarative Detectors",
+      "feature": "Scan and Detection",
+      "description": "```forge-task {   \"id\": \"SCAN-3\",",
+      "ownerAgents": [
+        "detector-engineer"
+      ],
+      "dependencies": [
+        "SCAN-AND-DETECTION-1"
+      ],
+      "approvalRequired": true,
+      "tasks": [
+        {
+          "id": "SCAN-3",
+          "title": "Build the detector registry and interface",
+          "description": "Implement internal/detect with a Detector interface that maps a component directory and its candidate files to model.Requirement values, and a registry that runs every registered detector and returns the combined, deterministically ordered requirements. A detector declares which file names it handles. Do not implement individual manifest parsers here.",
+          "ownerAgent": "detector-engineer",
+          "dependencies": [],
+          "expectedOutputs": [
+            "internal/detect/detector.go",
+            "internal/detect/registry.go",
+            "internal/detect/registry_test.go"
+          ],
+          "validationCommands": [
+            "go test ./internal/detect/...",
+            "go vet ./internal/detect/..."
+          ],
+          "contract": {
+            "version": 1,
+            "kind": "implementation",
+            "requirements": [
+              "SCAN-FR-07: Provide a detector registry and a detector interface in which each detector reads one declarative file kind and returns tool, constraint, source file, component, category, and confidence for each requirement, never inventing versions absent from the file."
+            ],
+            "acceptanceCriteria": [
+              "The registry runs every registered detector exactly once per component",
+              "A detector claiming a file name is invoked for that file",
+              "Registry output order is stable",
+              "A detector never emits a version not present in its input"
+            ],
+            "constraints": [
+              "Detectors are pure functions over files and must not execute repository code",
+              "CONST-01: repo-ready never installs tools and never executes repository code or repository scripts; it only reports requirements, install commands, and links for the user to run themselves."
+            ],
+            "references": [
+              "docs/features/scan-and-detect.md#SCAN-FR-07",
+              "docs/PRD.md#CONST-01"
+            ]
+          },
+          "requiredCapabilities": [
+            "repository-tools"
+          ],
+          "approvalRequired": false,
+          "sourceLines": [],
+          "produces": "work.scan-3",
+          "inputs": [
+            "work.scan-1",
+            "work.scan-2"
+          ]
+        },
+        {
+          "id": "SCAN-4",
+          "title": "Implement dotfile and version-manager detectors",
+          "description": "Implement detectors for .tool-versions, .nvmrc, mise.toml, .python-version, and rust-toolchain.toml. Each detector reads its file, extracts tool names and declared constraints exactly as written, and emits a model.Requirement with the declaring file, component, category, and confidence. Cover plain pins, major-only pins, and multi-tool files, and return an explicit error for unreadable content rather than guessing.",
+          "ownerAgent": "detector-engineer",
+          "dependencies": [
+            "SCAN-3"
+          ],
+          "expectedOutputs": [
+            "internal/detect/dotfiles.go",
+            "internal/detect/dotfiles_test.go",
+            "testdata/detect/toolversions/.tool-versions",
+            "testdata/detect/nvmrc/.nvmrc"
+          ],
+          "validationCommands": [
+            "go test ./internal/detect/... -run TestDotfileDetectors"
+          ],
+          "contract": {
+            "version": 1,
+            "kind": "implementation",
+            "requirements": [
+              "SCAN-FR-08: Ship exactly these v1 detectors: .tool-versions, .nvmrc, mise.toml, package.json engines, rust-toolchain.toml, go.mod, .python-version, devcontainer.json, Dockerfile, Makefile, and README prerequisites."
+            ],
+            "acceptanceCriteria": [
+              "Each of the five dotfile formats is covered by a table-driven fixture test",
+              "Multi-tool .tool-versions yields one requirement per tool",
+              "Malformed input returns an error and no requirement"
+            ],
+            "constraints": [],
+            "references": [
+              "docs/features/scan-and-detect.md#SCAN-FR-08"
+            ]
+          },
+          "requiredCapabilities": [
+            "repository-tools"
+          ],
+          "approvalRequired": false,
+          "sourceLines": [],
+          "produces": "work.scan-4",
+          "inputs": [
+            "work.scan-3",
+            "work.scan-1",
+            "work.scan-2"
+          ]
+        },
+        {
+          "id": "SCAN-5",
+          "title": "Implement ecosystem manifest detectors",
+          "description": "Implement detectors for package.json engines, go.mod, and devcontainer.json. Parse the language's declared tool and version fields using the standard library or the pinned dependencies, emit model.Requirement values with the declaring file and component, and ignore fields that declare no tool version. Return a structured error for syntactically invalid manifests.",
+          "ownerAgent": "detector-engineer",
+          "dependencies": [
+            "SCAN-3"
+          ],
+          "expectedOutputs": [
+            "internal/detect/manifests.go",
+            "internal/detect/manifests_test.go",
+            "testdata/detect/packagejson/package.json",
+            "testdata/detect/gomod/go.mod"
+          ],
+          "validationCommands": [
+            "go test ./internal/detect/... -run TestManifestDetectors"
+          ],
+          "contract": {
+            "version": 1,
+            "kind": "implementation",
+            "requirements": [
+              "SCAN-FR-08: Ship exactly these v1 detectors: .tool-versions, .nvmrc, mise.toml, package.json engines, rust-toolchain.toml, go.mod, .python-version, devcontainer.json, Dockerfile, Makefile, and README prerequisites."
+            ],
+            "acceptanceCriteria": [
+              "package.json engines, go.mod directives, and devcontainer.json features are each parsed by a fixture test",
+              "Invalid manifests produce an error and no requirement",
+              "Declared constraints are preserved verbatim"
+            ],
+            "constraints": [],
+            "references": [
+              "docs/features/scan-and-detect.md#SCAN-FR-08"
+            ]
+          },
+          "requiredCapabilities": [
+            "repository-tools"
+          ],
+          "approvalRequired": false,
+          "sourceLines": [],
+          "produces": "work.scan-5",
+          "inputs": [
+            "work.scan-3",
+            "work.scan-1",
+            "work.scan-2"
+          ]
+        },
+        {
+          "id": "SCAN-6",
+          "title": "Implement conservative text-file detectors",
+          "description": "Implement detectors for Dockerfile, Makefile, and README prerequisites. For Dockerfile and Makefile, extract explicit tool/version declarations such as FROM image tags and documented tool versions. For README, recognize only explicit prerequisite blocks: fenced install command blocks referencing a known tool, or bullet/list lines of the form tool plus a version or minimum. Mark every README-derived requirement with reduced confidence and a README source, and never derive a requirement from general prose.",
+          "ownerAgent": "detector-engineer",
+          "dependencies": [
+            "SCAN-3"
+          ],
+          "expectedOutputs": [
+            "internal/detect/textfiles.go",
+            "internal/detect/textfiles_test.go",
+            "testdata/detect/readme/README.md"
+          ],
+          "validationCommands": [
+            "go test ./internal/detect/... -run TestTextDetectors"
+          ],
+          "contract": {
+            "version": 1,
+            "kind": "implementation",
+            "requirements": [
+              "SCAN-FR-08: Ship exactly these v1 detectors: .tool-versions, .nvmrc, mise.toml, package.json engines, rust-toolchain.toml, go.mod, .python-version, devcontainer.json, Dockerfile, Makefile, and README prerequisites.",
+              "SCAN-FR-09: README prerequisite detection is conservative: it recognizes only explicit prerequisite declarations such as fenced install blocks or lines naming a tool with a version, marks those findings with lower confidence and a README source, and never derives requirements from general prose."
+            ],
+            "acceptanceCriteria": [
+              "Explicit README prerequisite blocks yield requirements with reduced confidence",
+              "Prose that merely mentions a tool yields no requirement",
+              "Dockerfile and Makefile fixtures each yield the expected requirements"
+            ],
+            "constraints": [
+              "README detection must never guess from unstructured prose"
+            ],
+            "references": [
+              "docs/features/scan-and-detect.md#SCAN-FR-08",
+              "docs/features/scan-and-detect.md#SCAN-FR-09"
+            ]
+          },
+          "requiredCapabilities": [
+            "repository-tools"
+          ],
+          "approvalRequired": false,
+          "sourceLines": [],
+          "produces": "work.scan-6",
+          "inputs": [
+            "work.scan-3",
+            "work.scan-1",
+            "work.scan-2"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "TOOL-CATALOG-1",
+      "title": "Phase 1: Catalog Schema and Content",
+      "feature": "Tool Catalog",
+      "description": "```forge-task {   \"id\": \"CATALOG-1\",",
+      "ownerAgents": [
+        "catalog-engineer"
+      ],
+      "dependencies": [
+        "PROJECT-FOUNDATION-1"
+      ],
+      "approvalRequired": true,
+      "tasks": [
+        {
+          "id": "CATALOG-1",
+          "title": "Implement the catalog schema, loader, and validation",
+          "description": "Implement internal/catalog with a ToolEntry type (id, name, category, docs URL, and linux/macos/windows install commands), an embedded JSON catalog via go:embed, a loader, and validation requiring unique ids, non-empty name/category/docs URL, an https docs URL, and at least one non-empty install command per platform. Provide a lookup that returns an entry or a not-found result so callers can report unknown tools without failing. Include a small seed catalog so the package compiles before the full catalog is authored.",
+          "ownerAgent": "catalog-engineer",
+          "dependencies": [],
+          "expectedOutputs": [
+            "internal/catalog/catalog.go",
+            "internal/catalog/catalog_test.go",
+            "internal/catalog/data/tools.json",
+            "internal/catalog/testdata/invalid_catalog.json"
+          ],
+          "validationCommands": [
+            "go test ./internal/catalog/...",
+            "go vet ./internal/catalog/..."
+          ],
+          "contract": {
+            "version": 1,
+            "kind": "implementation",
+            "requirements": [
+              "CATALOG-FR-01: Bundle in the binary a curated catalog of 25 to 40 tools, each with a stable identifier, display name, category, https documentation URL, and explicit Linux, macOS, and Windows install commands, versioned alongside the binary.",
+              "CATALOG-FR-02: Load and validate the catalog at startup, requiring unique identifiers, non-empty required fields, and valid https documentation URLs, and fail with a clear error if the bundled catalog is invalid.",
+              "CATALOG-FR-03: A tool present in a repository but absent from the catalog is still reported with its declared constraint and source, using no catalog metadata, and never causes a hard failure."
+            ],
+            "acceptanceCriteria": [
+              "Duplicate ids, empty fields, and non-https docs URLs fail validation",
+              "Lookup of an unknown tool returns not-found without an error",
+              "The embedded catalog loads without network access"
+            ],
+            "constraints": [
+              "Catalog data is embedded and versioned with the binary",
+              "CONST-03: repo-ready ships as one static Go binary with no runtime dependencies, embedding its curated install-metadata catalog and versioning that catalog alongside the binary."
+            ],
+            "references": [
+              "docs/features/tool-catalog.md#CATALOG-FR-01",
+              "docs/features/tool-catalog.md#CATALOG-FR-02",
+              "docs/features/tool-catalog.md#CATALOG-FR-03",
+              "docs/PRD.md#CONST-03"
+            ]
+          },
+          "requiredCapabilities": [
+            "repository-tools"
+          ],
+          "approvalRequired": false,
+          "sourceLines": [],
+          "produces": "work.catalog-1",
+          "inputs": [
+            "work.found-1",
+            "work.found-2"
+          ]
+        },
+        {
+          "id": "CATALOG-2",
+          "title": "Author the curated 25-40 tool catalog",
+          "description": "Populate internal/catalog/data/tools.json with 25 to 40 curated tools spanning language runtimes, package managers and dev tooling, containers and orchestration, cloud CLIs, database clients, and system-level dependencies. Each entry carries a stable id, display name, category, a canonical https docs URL, and install commands for Linux, macOS, and Windows. Add a coverage test that asserts every entry validates, the category set matches the intended spread, and each platform command is non-empty for every tool.",
+          "ownerAgent": "catalog-engineer",
+          "dependencies": [
+            "CATALOG-1"
+          ],
+          "expectedOutputs": [
+            "internal/catalog/data/tools.json",
+            "internal/catalog/tools_coverage_test.go"
+          ],
+          "validationCommands": [
+            "go test ./internal/catalog/... -run TestCatalogCoverage"
+          ],
+          "contract": {
+            "version": 1,
+            "kind": "implementation",
+            "requirements": [
+              "CATALOG-FR-01: Bundle in the binary a curated catalog of 25 to 40 tools, each with a stable identifier, display name, category, https documentation URL, and explicit Linux, macOS, and Windows install commands, versioned alongside the binary."
+            ],
+            "acceptanceCriteria": [
+              "The catalog contains between 25 and 40 validated entries",
+              "Every entry has Linux, macOS, and Windows install commands",
+              "Categories span runtimes, package managers, containers, cloud CLIs, database clients, and system dependencies"
+            ],
+            "constraints": [
+              "Install commands must be official, copy-pasteable, and non-destructive",
+              "CONST-01: repo-ready never installs tools and never executes repository code or repository scripts; it only reports requirements, install commands, and links for the user to run themselves."
+            ],
+            "references": [
+              "docs/features/tool-catalog.md#CATALOG-FR-01",
+              "docs/PRD.md#CONST-01"
+            ]
+          },
+          "requiredCapabilities": [
+            "repository-tools"
+          ],
+          "approvalRequired": false,
+          "sourceLines": [],
+          "produces": "work.catalog-2",
+          "inputs": [
+            "work.catalog-1",
+            "work.found-1",
+            "work.found-2"
+          ]
+        },
+        {
+          "id": "CATALOG-3",
+          "title": "Human review of catalog install-command and link accuracy",
+          "description": "A human reviewer spot-checks the curated catalog across platforms. For a sample spanning every category, verify that each docs URL resolves to the official documentation and that the Linux, macOS, and Windows install commands are correct, current, and non-destructive. Record the sampled tool ids, the observed results, any corrections required, and the reviewer decision in the review file. This gate cannot be satisfied by an agent.",
+          "dependencies": [
+            "CATALOG-2"
+          ],
+          "expectedOutputs": [],
+          "validationCommands": [],
+          "contract": {
+            "version": 1,
+            "kind": "human-review",
+            "requirements": [
+              "CATALOG-FR-01: Bundle in the binary a curated catalog of 25 to 40 tools, each with a stable identifier, display name, category, https documentation URL, and explicit Linux, macOS, and Windows install commands, versioned alongside the binary."
+            ],
+            "acceptanceCriteria": [
+              "A per-category sample is recorded with observed URL and command results",
+              "Every flagged correction is either applied or explicitly accepted with a rationale",
+              "The reviewer records an explicit approval decision"
+            ],
+            "constraints": [],
+            "references": [
+              "docs/features/tool-catalog.md#CATALOG-FR-01"
+            ],
+            "reviewFile": "docs/reviews/catalog-accuracy.json"
+          },
+          "requiredCapabilities": [
+            "repository-tools"
+          ],
+          "approvalRequired": false,
+          "sourceLines": [],
+          "produces": "work.catalog-3",
+          "inputs": [
+            "work.catalog-2",
+            "work.found-1",
+            "work.found-2"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "PROBING-AND-VERSION-MATCHING-1",
+      "title": "Phase 1: Probing Backend and Matching",
+      "feature": "Probing and Version Matching",
+      "description": "```forge-task {   \"id\": \"PROBE-1\",",
+      "ownerAgents": [
+        "probe-engineer"
+      ],
+      "dependencies": [
+        "PROJECT-FOUNDATION-1"
+      ],
+      "approvalRequired": true,
+      "tasks": [
+        {
+          "id": "PROBE-1",
+          "title": "Implement the swappable probe backend with PATH lookup",
+          "description": "Define the probe backend interface in internal/probe, then implement the v1 backend that locates a tool with exec.LookPath, runs its known safe version-query invocation directly without a shell under a 5 second context timeout, and parses the first version-like token from combined output. A binary that is absent yields a missing result rather than an error, and an unrecognized binary yields an unknown version. Keep tool-to-command mapping explicit and validated against known tool identifiers.",
+          "ownerAgent": "probe-engineer",
+          "dependencies": [],
+          "expectedOutputs": [
+            "internal/probe/backend.go",
+            "internal/probe/path.go",
+            "internal/probe/parse.go",
+            "internal/probe/probe_test.go"
+          ],
+          "validationCommands": [
+            "go test ./internal/probe/... -run TestPathBackend",
+            "go vet ./internal/probe/..."
+          ],
+          "contract": {
+            "version": 1,
+            "kind": "implementation",
+            "requirements": [
+              "PROBE-FR-01: Expose installed-tool probing behind a backend interface so version-manager enumeration can be added later without changing callers.",
+              "PROBE-FR-02: The v1 backend locates a tool on PATH, runs a known safe version-query invocation without a shell with a 5 second timeout, parses the first version-like token from its output, and reports a missing binary as missing rather than an error."
+            ],
+            "acceptanceCriteria": [
+              "A missing binary yields a missing result, not an error",
+              "The invocation runs without a shell and honors the 5 second timeout",
+              "Version output variants are parsed by table-driven tests",
+              "The backend is used only through its interface"
+            ],
+            "constraints": [
+              "Only known safe version-query commands run, with no shell and no credential access",
+              "CONST-09: Command probing runs binaries directly without a shell, only using known safe version-query invocations for recognized tools, with tool names validated against the bundled catalog and never interpolated into a shell string.",
+              "CONST-01: repo-ready never installs tools and never executes repository code or repository scripts; it only reports requirements, install commands, and links for the user to run themselves."
+            ],
+            "references": [
+              "docs/features/probing-and-matching.md#PROBE-FR-01",
+              "docs/features/probing-and-matching.md#PROBE-FR-02",
+              "docs/PRD.md#CONST-09",
+              "docs/PRD.md#CONST-01"
+            ]
+          },
+          "requiredCapabilities": [
+            "repository-tools"
+          ],
+          "approvalRequired": false,
+          "sourceLines": [],
+          "produces": "work.probe-1",
+          "inputs": [
+            "work.found-1",
+            "work.found-2"
+          ]
+        },
+        {
+          "id": "PROBE-2",
+          "title": "Add bounded-concurrency probe scheduling with de-duplication",
+          "description": "Implement a probe scheduler that accepts a set of tool identifiers, de-duplicates them, runs probes with at most 8 concurrent workers, respects each probe's timeout, and returns results keyed by tool. Cancellation stops outstanding work promptly. Do not implement matching or reporting here.",
+          "ownerAgent": "probe-engineer",
+          "dependencies": [
+            "PROBE-1"
+          ],
+          "expectedOutputs": [
+            "internal/probe/scheduler.go",
+            "internal/probe/scheduler_test.go"
+          ],
+          "validationCommands": [
+            "go test ./internal/probe/... -run TestScheduler",
+            "go vet ./internal/probe/..."
+          ],
+          "contract": {
+            "version": 1,
+            "kind": "implementation",
+            "requirements": [
+              "PROBE-FR-03: Probe requests run with at most 8 concurrent workers and identical tool probes are de-duplicated so each distinct tool is queried once."
+            ],
+            "acceptanceCriteria": [
+              "A tool present twice in the input is probed once",
+              "No more than 8 probes run concurrently",
+              "Cancellation terminates outstanding probes"
+            ],
+            "constraints": [
+              "Bound concurrency to the documented worker limit",
+              "CONST-11: A local scan and report for a typical repository completes in under 2 seconds; probe commands each have a 5 second timeout; probing uses at most 8 concurrent workers; remote clones use depth 1; directory scanning defaults to a maximum depth of 6."
+            ],
+            "references": [
+              "docs/features/probing-and-matching.md#PROBE-FR-03",
+              "docs/PRD.md#CONST-11"
+            ]
+          },
+          "requiredCapabilities": [
+            "repository-tools"
+          ],
+          "approvalRequired": false,
+          "sourceLines": [],
+          "produces": "work.probe-2",
+          "inputs": [
+            "work.probe-1",
+            "work.found-1",
+            "work.found-2"
+          ]
+        },
+        {
+          "id": "PROBE-3",
+          "title": "Parse constraints and compute loose match statuses",
+          "description": "Implement internal/match constraint parsing and status computation. Support numeric pins as minimums, >=X minimums, ^X same-major, ~X and ~>X same-minor, and bare major same-major, using the pinned semver library for parsing. Compute ok, missing, outdated, or unknown, where an unparseable constraint or version is unknown and never fails. Always retain the declared constraint string and the installed version string on the finding.",
+          "ownerAgent": "probe-engineer",
+          "dependencies": [],
+          "expectedOutputs": [
+            "internal/match/constraint.go",
+            "internal/match/match.go",
+            "internal/match/match_test.go"
+          ],
+          "validationCommands": [
+            "go test ./internal/match/... -run TestMatch",
+            "go vet ./internal/match/..."
+          ],
+          "contract": {
+            "version": 1,
+            "kind": "implementation",
+            "requirements": [
+              "PROBE-FR-04: Loose matching parses a numeric pin as a minimum, >=X as a minimum, ^X as the same major as X, ~X or ~>X as the same minor as X, and a bare major as the same major, and treats an unparseable constraint as unknown.",
+              "PROBE-FR-05: Each finding has a status of ok, missing, outdated, or unknown; a mismatch warns rather than silently failing, and the declared constraint and installed version are always retained and shown together."
+            ],
+            "acceptanceCriteria": [
+              "Each constraint form is covered by a table-driven test including boundary versions",
+              "An unparseable constraint yields unknown, never a failure",
+              "Declared and installed strings are preserved verbatim on the finding"
+            ],
+            "constraints": [
+              "Mismatches warn; they never silently fail"
+            ],
+            "references": [
+              "docs/features/probing-and-matching.md#PROBE-FR-04",
+              "docs/features/probing-and-matching.md#PROBE-FR-05"
+            ]
+          },
+          "requiredCapabilities": [
+            "repository-tools"
+          ],
+          "approvalRequired": false,
+          "sourceLines": [],
+          "produces": "work.probe-3",
+          "inputs": [
+            "work.found-1",
+            "work.found-2"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "PROBING-AND-VERSION-MATCHING-2",
+      "title": "Phase 2: Reconciliation",
+      "feature": "Probing and Version Matching",
+      "description": "```forge-task {   \"id\": \"PROBE-4\",",
+      "ownerAgents": [
+        "probe-engineer"
+      ],
+      "dependencies": [
+        "PROBING-AND-VERSION-MATCHING-1"
+      ],
+      "approvalRequired": true,
+      "tasks": [
+        {
+          "id": "PROBE-4",
+          "title": "Reconcile findings across components and flag conflicts",
+          "description": "Implement reconciliation that merges probe results with detected requirements, de-duplicates by tool across components, and, when one tool is declared with differing constraints in multiple components, produces a single finding that lists every declaration and is flagged as a conflict. Preserve component attribution for each declaration and keep deterministic ordering. Do not render output here.",
+          "ownerAgent": "probe-engineer",
+          "dependencies": [
+            "PROBE-3"
+          ],
+          "expectedOutputs": [
+            "internal/match/reconcile.go",
+            "internal/match/reconcile_test.go"
+          ],
+          "validationCommands": [
+            "go test ./internal/match/... -run TestReconcile",
+            "go vet ./internal/match/..."
+          ],
+          "contract": {
+            "version": 1,
+            "kind": "implementation",
+            "requirements": [
+              "PROBE-FR-06: Findings are de-duplicated by tool across components, and when a tool is declared with differing constraints in multiple components all declarations are listed and the finding is flagged as a conflict."
+            ],
+            "acceptanceCriteria": [
+              "A tool declared in three components yields one finding listing all declarations",
+              "Differing constraints set the conflict flag and preserve every declaration",
+              "Identical constraints do not set the conflict flag",
+              "Reconciliation order is deterministic"
+            ],
+            "constraints": [],
+            "references": [
+              "docs/features/probing-and-matching.md#PROBE-FR-06"
+            ]
+          },
+          "requiredCapabilities": [
+            "repository-tools"
+          ],
+          "approvalRequired": false,
+          "sourceLines": [],
+          "produces": "work.probe-4",
+          "inputs": [
+            "work.probe-3",
+            "work.probe-1",
+            "work.probe-2"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ONLINE-ENRICHMENT-1",
+      "title": "Phase 1: Enrichment Client and Link Validation",
+      "feature": "Online Enrichment",
+      "description": "```forge-task {   \"id\": \"ENRICH-1\",",
+      "ownerAgents": [
+        "enrichment-engineer"
+      ],
+      "dependencies": [
+        "PROJECT-FOUNDATION-1",
+        "TOOL-CATALOG-1",
+        "PROBING-AND-VERSION-MATCHING-2"
+      ],
+      "approvalRequired": true,
+      "tasks": [
+        {
+          "id": "ENRICH-1",
+          "title": "Implement the enrichment client and latest-version lookup",
+          "description": "Implement internal/enrich with an HTTP client that performs latest-version lookups for catalog tools with a bounded per-request timeout and an overall budget, plus a function that returns an Enrichment for each finding or a structured not-available marker. Every network error, timeout, or non-200 response degrades to not-available without returning a fatal error. The package must make no requests when not explicitly invoked.",
+          "ownerAgent": "enrichment-engineer",
+          "dependencies": [],
+          "expectedOutputs": [
+            "internal/enrich/client.go",
+            "internal/enrich/latest.go",
+            "internal/enrich/client_test.go"
+          ],
+          "validationCommands": [
+            "go test ./internal/enrich/... -run TestLatest",
+            "go vet ./internal/enrich/..."
+          ],
+          "contract": {
+            "version": 1,
+            "kind": "implementation",
+            "requirements": [
+              "ENRICH-FR-01: Online enrichment is disabled by default and runs only when the user passes --enrich, so that no outbound network request occurs during a default invocation.",
+              "ENRICH-FR-02: When --enrich is enabled, look up the latest upstream version per tool and validate documentation links, and on any failure note the missing enrichment inline and continue without blocking or invalidating the local report.",
+              "ENRICH-FR-03: Enrichment requests use a bounded per-request timeout and an overall time budget, are additive metadata only, and never change finding statuses or process exit codes."
+            ],
+            "acceptanceCriteria": [
+              "No request is made unless the lookup is invoked",
+              "Timeouts and error responses degrade to not-available",
+              "A successful lookup returns the latest version for the tool",
+              "Tests use an httptest server and run offline"
+            ],
+            "constraints": [
+              "Only tool identifiers and documentation URLs leave the machine; no repository contents are sent",
+              "CONST-10: repo-ready emits no telemetry and stores nothing remotely; when online enrichment is explicitly enabled the only outbound data is the tool identifiers and documentation URLs required for that lookup.",
+              "CONST-08: repo-ready is offline by default and performs no network I/O unless the user passes --enrich; when enrichment is requested it is additive and degrades gracefully when a feed is unreachable, so the local deterministic report always remains valid."
+            ],
+            "references": [
+              "docs/features/online-enrichment.md#ENRICH-FR-01",
+              "docs/features/online-enrichment.md#ENRICH-FR-02",
+              "docs/features/online-enrichment.md#ENRICH-FR-03",
+              "docs/PRD.md#CONST-10",
+              "docs/PRD.md#CONST-08"
+            ]
+          },
+          "requiredCapabilities": [
+            "repository-tools"
+          ],
+          "approvalRequired": false,
+          "sourceLines": [],
+          "produces": "work.enrich-1",
+          "inputs": [
+            "work.found-1",
+            "work.found-2",
+            "work.catalog-1",
+            "work.catalog-2",
+            "work.catalog-3",
+            "work.probe-4"
+          ]
+        },
+        {
+          "id": "ENRICH-2",
+          "title": "Validate documentation links and attach inline enrichment notes",
+          "description": "Implement documentation-link validation for catalog entries and a function that attaches enrichment results to findings as additive notes, including an explicit not-available note when a lookup could not complete. Ensure the attachment step never mutates finding status, never removes local data, and is safe to skip entirely when enrichment is disabled.",
+          "ownerAgent": "enrichment-engineer",
+          "dependencies": [
+            "ENRICH-1"
+          ],
+          "expectedOutputs": [
+            "internal/enrich/links.go",
+            "internal/enrich/report.go",
+            "internal/enrich/links_test.go"
+          ],
+          "validationCommands": [
+            "go test ./internal/enrich/... -run TestLinks",
+            "go vet ./internal/enrich/..."
+          ],
+          "contract": {
+            "version": 1,
+            "kind": "implementation",
+            "requirements": [
+              "ENRICH-FR-02: When --enrich is enabled, look up the latest upstream version per tool and validate documentation links, and on any failure note the missing enrichment inline and continue without blocking or invalidating the local report."
+            ],
+            "acceptanceCriteria": [
+              "A broken link is reported as a note and does not fail the run",
+              "Attaching enrichment leaves statuses and exit codes unchanged",
+              "A disabled enricher produces no notes and no requests",
+              "Tests run offline with an httptest server"
+            ],
+            "constraints": [
+              "Enrichment is additive and degrades gracefully",
+              "CONST-08: repo-ready is offline by default and performs no network I/O unless the user passes --enrich; when enrichment is requested it is additive and degrades gracefully when a feed is unreachable, so the local deterministic report always remains valid.",
+              "CONST-10: repo-ready emits no telemetry and stores nothing remotely; when online enrichment is explicitly enabled the only outbound data is the tool identifiers and documentation URLs required for that lookup."
+            ],
+            "references": [
+              "docs/features/online-enrichment.md#ENRICH-FR-02",
+              "docs/PRD.md#CONST-08",
+              "docs/PRD.md#CONST-10"
+            ]
+          },
+          "requiredCapabilities": [
+            "repository-tools"
+          ],
+          "approvalRequired": false,
+          "sourceLines": [],
+          "produces": "work.enrich-2",
+          "inputs": [
+            "work.enrich-1",
+            "work.found-1",
+            "work.found-2",
+            "work.catalog-1",
+            "work.catalog-2",
+            "work.catalog-3",
+            "work.probe-4"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "REPORTING-1",
+      "title": "Phase 1: Encoders, Orchestration, and TUI",
+      "feature": "Reporting",
+      "description": "```forge-task {   \"id\": \"REPORT-1\",",
+      "ownerAgents": [
+        "cli-engineer",
+        "tui-engineer"
+      ],
+      "dependencies": [
+        "PROJECT-FOUNDATION-1",
+        "SCAN-AND-DETECTION-2",
+        "TOOL-CATALOG-1",
+        "PROBING-AND-VERSION-MATCHING-2",
+        "ONLINE-ENRICHMENT-1"
+      ],
+      "approvalRequired": true,
+      "tasks": [
+        {
+          "id": "REPORT-1",
+          "title": "Encode the versioned JSON report",
+          "description": "Implement internal/report with a JSON encoder that renders the Report model as a single object with schemaVersion, input metadata, scan metadata including skipped paths and depth, components, findings with declared and installed values and conflict declarations, and an optional enrichment section that is omitted when absent. Enforce stable field ordering and names with a schema version constant, and return an error only for unencodable input.",
+          "ownerAgent": "cli-engineer",
+          "dependencies": [],
+          "expectedOutputs": [
+            "internal/report/json.go",
+            "internal/report/json_test.go"
+          ],
+          "validationCommands": [
+            "go test ./internal/report/...",
+            "go vet ./internal/report/..."
+          ],
+          "contract": {
+            "version": 1,
+            "kind": "implementation",
+            "requirements": [
+              "REPORT-FR-03: --json emits a single versioned JSON object containing schemaVersion, input metadata, scan metadata including skipped paths, components, findings with declared and installed values, and optional enrichment, all with stable field names."
+            ],
+            "acceptanceCriteria": [
+              "Output is a single object with a schemaVersion field",
+              "Skipped paths and scan depth are present",
+              "Enrichment is omitted when absent and present when supplied",
+              "A golden test pins the field names"
+            ],
+            "constraints": [],
+            "references": [
+              "docs/features/reporting.md#REPORT-FR-03"
+            ]
+          },
+          "requiredCapabilities": [
+            "repository-tools"
+          ],
+          "approvalRequired": false,
+          "sourceLines": [],
+          "produces": "work.report-1",
+          "inputs": [
+            "work.found-1",
+            "work.found-2",
+            "work.scan-3",
+            "work.scan-4",
+            "work.scan-5",
+            "work.scan-6",
+            "work.catalog-1",
+            "work.catalog-2",
+            "work.catalog-3",
+            "work.probe-4",
+            "work.enrich-1",
+            "work.enrich-2"
+          ]
+        },
+        {
+          "id": "REPORT-2",
+          "title": "Orchestrate the scan, detect, probe, and match pipeline",
+          "description": "Implement the orchestrator in internal/app that runs input resolution, scanning, detection, probing, and reconciliation in order, assembles the Report model, and records skipped paths plus whether enrichment is enabled and online. Accept an optional enricher hook that is nil by default so no enrichment code runs unless supplied. Fail with a typed fatal error for input or clone failures. Do not parse CLI flags or render output here.",
+          "ownerAgent": "cli-engineer",
+          "dependencies": [
+            "SCAN-6",
+            "CATALOG-1",
+            "PROBE-4",
+            "REPORT-1"
+          ],
+          "expectedOutputs": [
+            "internal/app/orchestrate.go",
+            "internal/app/orchestrate_test.go"
+          ],
+          "validationCommands": [
+            "go test ./internal/app/... -run TestOrchestrate",
+            "go vet ./internal/app/..."
+          ],
+          "contract": {
+            "version": 1,
+            "kind": "implementation",
+            "requirements": [
+              "REPORT-FR-07: A single orchestrator runs input, scan, detect, probe, and match in order, attaches enrichment only when requested, and surfaces skipped paths and the online/offline enrichment state in the report."
+            ],
+            "acceptanceCriteria": [
+              "A fixture repo produces a complete Report with components and findings",
+              "Skipped paths and enrichment state are recorded",
+              "A nil enricher performs no enrichment work",
+              "An input failure returns a typed fatal error"
+            ],
+            "constraints": [
+              "The orchestrator never installs or executes repository code",
+              "CONST-01: repo-ready never installs tools and never executes repository code or repository scripts; it only reports requirements, install commands, and links for the user to run themselves."
+            ],
+            "references": [
+              "docs/features/reporting.md#REPORT-FR-07",
+              "docs/PRD.md#CONST-01"
+            ]
+          },
+          "requiredCapabilities": [
+            "repository-tools"
+          ],
+          "approvalRequired": false,
+          "sourceLines": [],
+          "produces": "work.report-2",
+          "inputs": [
+            "work.scan-6",
+            "work.catalog-1",
+            "work.probe-4",
+            "work.report-1",
+            "work.found-1",
+            "work.found-2",
+            "work.scan-3",
+            "work.scan-4",
+            "work.scan-5",
+            "work.catalog-2",
+            "work.catalog-3",
+            "work.enrich-1",
+            "work.enrich-2"
+          ]
+        },
+        {
+          "id": "REPORT-3",
+          "title": "Build the Bubble Tea report and detail view",
+          "description": "Implement internal/tui with a Bubble Tea model, view, and update that render a scrollable findings list and a per-tool detail pane. Each row shows a text status label, tool, declared constraint, and installed version. The detail pane shows why the tool is required, the declaring file and component, the docs link, and per-platform install commands. Navigation is via arrow keys and j/k, Enter opens detail, and q quits. Styling uses Lip Gloss.",
+          "ownerAgent": "tui-engineer",
+          "dependencies": [
+            "REPORT-2"
+          ],
+          "expectedOutputs": [
+            "internal/tui/model.go",
+            "internal/tui/view.go",
+            "internal/tui/update.go",
+            "internal/tui/tui_test.go"
+          ],
+          "validationCommands": [
+            "go test ./internal/tui/... -run TestModel",
+            "go vet ./internal/tui/..."
+          ],
+          "contract": {
+            "version": 1,
+            "kind": "implementation",
+            "requirements": [
+              "REPORT-FR-04: The TUI presents a scrollable report, a per-tool detail pane showing why the tool is required, the declaring file, the documentation link, and the install commands, and filters for all tools, missing-or-outdated tools, and category."
+            ],
+            "acceptanceCriteria": [
+              "The view renders a row per finding with status, declared, and installed values",
+              "The detail pane shows requirement reason, declaring file, docs link, and install commands",
+              "Navigation and detail toggling update the model as asserted by update tests"
+            ],
+            "constraints": [
+              "Status is never rendered by color alone",
+              "CONST-12: Status is never encoded by color alone; the TUI is fully keyboard-navigable, honors the NO_COLOR environment variable and a --no-color flag, and a --plain mode renders screen-reader-friendly text without box-drawing characters."
+            ],
+            "references": [
+              "docs/features/reporting.md#REPORT-FR-04",
+              "docs/PRD.md#CONST-12"
+            ]
+          },
+          "requiredCapabilities": [
+            "repository-tools"
+          ],
+          "approvalRequired": false,
+          "sourceLines": [],
+          "produces": "work.report-3",
+          "inputs": [
+            "work.report-2",
+            "work.found-1",
+            "work.found-2",
+            "work.scan-3",
+            "work.scan-4",
+            "work.scan-5",
+            "work.scan-6",
+            "work.catalog-1",
+            "work.catalog-2",
+            "work.catalog-3",
+            "work.probe-4",
+            "work.enrich-1",
+            "work.enrich-2"
+          ]
+        },
+        {
+          "id": "REPORT-4",
+          "title": "Add filters, OSC52 copy, and color/plain modes",
+          "description": "Extend the TUI with filters for all, missing-or-outdated, and category, a persistent visible count, OSC52 clipboard copy of the selected install command with a copy-unsupported notice, and color handling that honors --no-color and NO_COLOR plus a --plain mode that removes box drawing and color. Keep keyboard shortcuts documented in the view footer.",
+          "ownerAgent": "tui-engineer",
+          "dependencies": [
+            "REPORT-3"
+          ],
+          "expectedOutputs": [
+            "internal/tui/filter.go",
+            "internal/tui/copy.go",
+            "internal/tui/style.go",
+            "internal/tui/filter_test.go"
+          ],
+          "validationCommands": [
+            "go test ./internal/tui/... -run TestFilters",
+            "go vet ./internal/tui/..."
+          ],
+          "contract": {
+            "version": 1,
+            "kind": "implementation",
+            "requirements": [
+              "REPORT-FR-04: The TUI presents a scrollable report, a per-tool detail pane showing why the tool is required, the declaring file, the documentation link, and the install commands, and filters for all tools, missing-or-outdated tools, and category.",
+              "REPORT-FR-05: The TUI is fully keyboard-driven, copies the selected install command via OSC52, and shows a clear copy-unsupported notice when the terminal does not support OSC52.",
+              "REPORT-FR-06: Status is never conveyed by color alone, the report honors --no-color and the NO_COLOR environment variable, and --plain renders screen-reader-friendly text without box-drawing characters."
+            ],
+            "acceptanceCriteria": [
+              "Each filter yields the expected visible subset",
+              "Copy emits the correct OSC52 sequence and shows an unsupported notice when unavailable",
+              "NO_COLOR and --no-color suppress color and --plain removes box drawing",
+              "Status remains readable without color"
+            ],
+            "constraints": [
+              "Keyboard-only operation must be complete; no action requires a mouse",
+              "CONST-12: Status is never encoded by color alone; the TUI is fully keyboard-navigable, honors the NO_COLOR environment variable and a --no-color flag, and a --plain mode renders screen-reader-friendly text without box-drawing characters."
+            ],
+            "references": [
+              "docs/features/reporting.md#REPORT-FR-04",
+              "docs/features/reporting.md#REPORT-FR-05",
+              "docs/features/reporting.md#REPORT-FR-06",
+              "docs/PRD.md#CONST-12"
+            ]
+          },
+          "requiredCapabilities": [
+            "repository-tools"
+          ],
+          "approvalRequired": false,
+          "sourceLines": [],
+          "produces": "work.report-4",
+          "inputs": [
+            "work.report-3",
+            "work.found-1",
+            "work.found-2",
+            "work.scan-3",
+            "work.scan-4",
+            "work.scan-5",
+            "work.scan-6",
+            "work.catalog-1",
+            "work.catalog-2",
+            "work.catalog-3",
+            "work.probe-4",
+            "work.enrich-1",
+            "work.enrich-2"
+          ]
+        },
+        {
+          "id": "REPORT-5",
+          "title": "Implement CLI flags, wiring, and exit codes",
+          "description": "Implement the CLI entrypoint and flag parsing in cmd/repo-ready and internal/app/cli.go. Accept one positional path-or-URL and the flags --json, --strict, --depth, --no-color, --plain, --enrich, --version, and --help. Wire the orchestrator to either the JSON encoder or the TUI, construct the enricher only when --enrich is set, print usage on invalid usage, and return exit codes 0 on success, 1 only under --strict with a missing or outdated finding, and 2 on fatal input, clone, or usage error. Keep main.go minimal.",
+          "ownerAgent": "cli-engineer",
+          "dependencies": [
+            "REPORT-2",
+            "REPORT-4"
+          ],
+          "expectedOutputs": [
+            "cmd/repo-ready/main.go",
+            "internal/app/cli.go",
+            "internal/app/cli_test.go"
+          ],
+          "validationCommands": [
+            "go test ./internal/app/... -run TestCLI",
+            "go build ./..."
+          ],
+          "contract": {
+            "version": 1,
+            "kind": "implementation",
+            "requirements": [
+              "REPORT-FR-01: The CLI accepts one positional path-or-URL argument plus the flags --json, --strict, --depth, --no-color, --plain, --enrich, --version, and --help, and rejects invalid usage with exit code 2.",
+              "REPORT-FR-02: Exit code is 0 on a successful scan, 1 only when --strict is set and at least one finding is missing or outdated, and 2 on a fatal input, clone, or usage error."
+            ],
+            "acceptanceCriteria": [
+              "Each documented flag is parsed and invalid usage exits 2",
+              "--json selects JSON and the default selects the TUI",
+              "--strict returns 1 only with a missing or outdated finding",
+              "A good scan without --strict returns 0"
+            ],
+            "constraints": [
+              "--enrich is the only path that enables network enrichment",
+              "CONST-08: repo-ready is offline by default and performs no network I/O unless the user passes --enrich; when enrichment is requested it is additive and degrades gracefully when a feed is unreachable, so the local deterministic report always remains valid."
+            ],
+            "references": [
+              "docs/features/reporting.md#REPORT-FR-01",
+              "docs/features/reporting.md#REPORT-FR-02",
+              "docs/PRD.md#CONST-08"
+            ]
+          },
+          "requiredCapabilities": [
+            "repository-tools"
+          ],
+          "approvalRequired": false,
+          "sourceLines": [],
+          "produces": "work.report-5",
+          "inputs": [
+            "work.report-2",
+            "work.report-4",
+            "work.found-1",
+            "work.found-2",
+            "work.scan-3",
+            "work.scan-4",
+            "work.scan-5",
+            "work.scan-6",
+            "work.catalog-1",
+            "work.catalog-2",
+            "work.catalog-3",
+            "work.probe-4",
+            "work.enrich-1",
+            "work.enrich-2"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "REPORTING-2",
+      "title": "Phase 2: Human Review",
+      "feature": "Reporting",
+      "description": "```forge-task {   \"id\": \"REPORT-6\",",
+      "ownerAgents": [],
+      "dependencies": [
+        "REPORTING-1"
+      ],
+      "approvalRequired": true,
+      "tasks": [
+        {
+          "id": "REPORT-6",
+          "title": "Human review of TUI legibility and pass/warn/fail readability",
+          "description": "A human reviewer runs the TUI against a fixture repository and evaluates legibility: whether status reads clearly without color, whether declared and installed versions are unambiguous, whether the detail pane is sufficient to act, and whether filters and keys are discoverable. Capture screenshots or transcripts, list any requested changes with severity, and record an explicit approval decision in the review file. This judgment cannot be made by an agent.",
+          "dependencies": [
+            "REPORT-4",
+            "REPORT-5"
+          ],
+          "expectedOutputs": [],
+          "validationCommands": [],
+          "contract": {
+            "version": 1,
+            "kind": "human-review",
+            "requirements": [
+              "REPORT-FR-04: The TUI presents a scrollable report, a per-tool detail pane showing why the tool is required, the declaring file, the documentation link, and the install commands, and filters for all tools, missing-or-outdated tools, and category."
+            ],
+            "acceptanceCriteria": [
+              "A transcript or screenshot set is captured for list, detail, filter, and plain modes",
+              "Requested changes are listed with severity and disposition",
+              "The reviewer records an explicit approval decision"
+            ],
+            "constraints": [],
+            "references": [
+              "docs/features/reporting.md#REPORT-FR-04"
+            ],
+            "reviewFile": "docs/reviews/tui-legibility.json"
+          },
+          "requiredCapabilities": [
+            "repository-tools"
+          ],
+          "approvalRequired": false,
+          "sourceLines": [],
+          "produces": "work.report-6",
+          "inputs": [
+            "work.report-4",
+            "work.report-5",
+            "work.report-1",
+            "work.report-2",
+            "work.report-3"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "RELEASE-AND-DISTRIBUTION-1",
+      "title": "Phase 1: CI, Release, and Documentation",
+      "feature": "Release and Distribution",
+      "description": "```forge-task {   \"id\": \"RELEASE-1\",",
+      "ownerAgents": [
+        "release-engineer"
+      ],
+      "dependencies": [
+        "PROJECT-FOUNDATION-1",
+        "REPORTING-2"
+      ],
+      "approvalRequired": true,
+      "tasks": [
+        {
+          "id": "RELEASE-1",
+          "title": "Add the cross-platform CI workflow",
+          "description": "Add a GitHub Actions workflow that runs on push and pull request with a matrix over ubuntu, macos, and windows, setting up the Go toolchain, verifying gofmt with no diffs, running go vet, and running go test ./... . Fail the job on any formatting diff, vet finding, or failing test. Do not add release publishing here.",
+          "ownerAgent": "release-engineer",
+          "dependencies": [],
+          "expectedOutputs": [
+            ".github/workflows/ci.yml"
+          ],
+          "validationCommands": [
+            "go vet ./...",
+            "go test ./..."
+          ],
+          "contract": {
+            "version": 1,
+            "kind": "implementation",
+            "requirements": [
+              "RELEASE-FR-01: A GitHub Actions CI workflow runs formatting checks, go vet, and the Go test suite on Linux, macOS, and Windows for every push and pull request."
+            ],
+            "acceptanceCriteria": [
+              "The workflow matrix includes Linux, macOS, and Windows",
+              "Formatting, vet, and test steps fail the job on failure",
+              "The workflow file is valid YAML"
+            ],
+            "constraints": [
+              "CI must not require network beyond module downloads",
+              "CONST-08: repo-ready is offline by default and performs no network I/O unless the user passes --enrich; when enrichment is requested it is additive and degrades gracefully when a feed is unreachable, so the local deterministic report always remains valid."
+            ],
+            "references": [
+              "docs/features/release-and-distribution.md#RELEASE-FR-01",
+              "docs/PRD.md#CONST-08"
+            ]
+          },
+          "requiredCapabilities": [
+            "repository-tools"
+          ],
+          "approvalRequired": false,
+          "sourceLines": [],
+          "produces": "work.release-1",
+          "inputs": [
+            "work.found-1",
+            "work.found-2",
+            "work.report-6"
+          ]
+        },
+        {
+          "id": "RELEASE-2",
+          "title": "Add the tagged release build and checksum workflow",
+          "description": "Add GoReleaser configuration and a GitHub Actions release workflow triggered by a version tag. Cross-compile linux, darwin, and windows for amd64 and arm64, inject the version through -ldflags into internal/version, produce archives and a checksums file, and publish them to the GitHub Release for the tag. Do not publish Homebrew or Scoop packages in v1.",
+          "ownerAgent": "release-engineer",
+          "dependencies": [
+            "RELEASE-1",
+            "REPORT-5"
+          ],
+          "expectedOutputs": [
+            ".goreleaser.yaml",
+            ".github/workflows/release.yml"
+          ],
+          "validationCommands": [
+            "go build -ldflags \"-X github.com/mcfuzzysquirrel/repo-ready/internal/version.Version=test\" ./..."
+          ],
+          "contract": {
+            "version": 1,
+            "kind": "implementation",
+            "requirements": [
+              "RELEASE-FR-02: A release workflow triggered by a version tag cross-compiles Linux, macOS, and Windows binaries for amd64 and arm64, injects the version via -ldflags, produces per-platform archives plus checksums, and attaches them to a GitHub Release."
+            ],
+            "acceptanceCriteria": [
+              "The build matrix covers all three operating systems and both architectures",
+              "The version is injected via -ldflags",
+              "Archives and a checksums file are produced and attached to the release"
+            ],
+            "constraints": [
+              "Produce static binaries with no runtime dependencies and no Homebrew/Scoop packaging in v1",
+              "CONST-03: repo-ready ships as one static Go binary with no runtime dependencies, embedding its curated install-metadata catalog and versioning that catalog alongside the binary."
+            ],
+            "references": [
+              "docs/features/release-and-distribution.md#RELEASE-FR-02",
+              "docs/PRD.md#CONST-03"
+            ]
+          },
+          "requiredCapabilities": [
+            "repository-tools"
+          ],
+          "approvalRequired": false,
+          "sourceLines": [],
+          "produces": "work.release-2",
+          "inputs": [
+            "work.release-1",
+            "work.report-5",
+            "work.found-1",
+            "work.found-2",
+            "work.report-6"
+          ]
+        },
+        {
+          "id": "RELEASE-3",
+          "title": "Write install script and user documentation",
+          "description": "Add a POSIX install script that detects OS and architecture, downloads the matching release archive, verifies its checksum, and installs the binary to a user-writable location. Write the README covering installation via prebuilt binary, the install script, and go install, plus usage, every flag, the 0/1/2 exit-code contract, and a link to the JSON schema document. Add docs/JSON-SCHEMA.md describing the versioned --json fields.",
+          "ownerAgent": "release-engineer",
+          "dependencies": [
+            "RELEASE-2"
+          ],
+          "expectedOutputs": [
+            "scripts/install.sh",
+            "README.md",
+            "docs/JSON-SCHEMA.md"
+          ],
+          "validationCommands": [
+            "bash -n scripts/install.sh"
+          ],
+          "contract": {
+            "version": 1,
+            "kind": "implementation",
+            "requirements": [
+              "RELEASE-FR-03: The project supports go install github.com/mcfuzzysquirrel/repo-ready/cmd/repo-ready@latest and provides a documented install script for prebuilt binaries.",
+              "RELEASE-FR-04: The README documents installation, usage, every flag, the exit-code contract, and links the JSON schema documentation."
+            ],
+            "acceptanceCriteria": [
+              "The install script passes shell syntax checking and verifies checksums",
+              "The README documents all install paths, flags, and exit codes",
+              "The JSON schema document lists every emitted field"
+            ],
+            "constraints": [
+              "Installing is performed by the user; the tool itself never installs anything",
+              "CONST-01: repo-ready never installs tools and never executes repository code or repository scripts; it only reports requirements, install commands, and links for the user to run themselves."
+            ],
+            "references": [
+              "docs/features/release-and-distribution.md#RELEASE-FR-03",
+              "docs/features/release-and-distribution.md#RELEASE-FR-04",
+              "docs/PRD.md#CONST-01"
+            ]
+          },
+          "requiredCapabilities": [
+            "repository-tools"
+          ],
+          "approvalRequired": false,
+          "sourceLines": [],
+          "produces": "work.release-3",
+          "inputs": [
+            "work.release-2",
+            "work.found-1",
+            "work.found-2",
+            "work.report-6"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "END-TO-END-VALIDATION-1",
+      "title": "Phase 1: Offline End-to-End and Opt-In Corpus",
+      "feature": "End-to-End Validation",
+      "description": "```forge-task {   \"id\": \"E2E-1\",",
+      "ownerAgents": [
+        "qa-engineer"
+      ],
+      "dependencies": [
+        "REPORTING-2",
+        "SCAN-AND-DETECTION-2",
+        "PROBING-AND-VERSION-MATCHING-2"
+      ],
+      "approvalRequired": true,
+      "tasks": [
+        {
+          "id": "E2E-1",
+          "title": "Build the offline end-to-end fixture harness",
+          "description": "Implement offline end-to-end tests that run the CLI against committed fixture repositories under e2e/testdata, covering a single-ecosystem repo, a monorepo with multiple components and a version conflict, and a repo declaring nothing. Assert exit codes, JSON structure, component grouping, conflict flagging, and deterministic repeatability with no network access.",
+          "ownerAgent": "qa-engineer",
+          "dependencies": [
+            "REPORT-5",
+            "SCAN-6",
+            "PROBE-4"
+          ],
+          "expectedOutputs": [
+            "e2e/e2e_test.go",
+            "e2e/fixtures_test.go",
+            "e2e/testdata/node-rust/.nvmrc",
+            "e2e/testdata/monorepo/web/package.json",
+            "e2e/testdata/monorepo/api/go.mod"
+          ],
+          "validationCommands": [
+            "go test ./e2e/... -run TestOffline",
+            "go vet ./e2e/..."
+          ],
+          "contract": {
+            "version": 1,
+            "kind": "implementation",
+            "requirements": [
+              "E2E-FR-01: Offline end-to-end tests build or invoke the binary against committed fixture repositories and assert deterministic scan, detection, matching, and reporting output with no network access."
+            ],
+            "acceptanceCriteria": [
+              "A single-ecosystem fixture produces the expected tools and statuses",
+              "A monorepo fixture groups findings by component and flags the conflict",
+              "A repo declaring nothing produces an empty finding set without error",
+              "Repeated runs are byte-identical",
+              "Tests make no network calls"
+            ],
+            "constraints": [
+              "Offline tests must not depend on network or on tools installed on the host",
+              "CONST-08: repo-ready is offline by default and performs no network I/O unless the user passes --enrich; when enrichment is requested it is additive and degrades gracefully when a feed is unreachable, so the local deterministic report always remains valid."
+            ],
+            "references": [
+              "docs/features/e2e-validation.md#E2E-FR-01",
+              "docs/PRD.md#CONST-08"
+            ]
+          },
+          "requiredCapabilities": [
+            "repository-tools"
+          ],
+          "approvalRequired": false,
+          "sourceLines": [],
+          "produces": "work.e2e-1",
+          "inputs": [
+            "work.report-5",
+            "work.scan-6",
+            "work.probe-4",
+            "work.report-6",
+            "work.scan-3",
+            "work.scan-4",
+            "work.scan-5"
+          ]
+        },
+        {
+          "id": "E2E-2",
+          "title": "Add the opt-in network corpus and performance budget tests",
+          "description": "Add an opt-in test that, only when an explicit environment variable is set, runs the tool against a small configured corpus of real remote repositories and checks that scanning succeeds and findings are produced. Add a performance test that times a full scan and report of a typical fixture repository and fails when it exceeds the documented budget. Both tests must skip cleanly by default so standard CI stays offline and deterministic.",
+          "ownerAgent": "qa-engineer",
+          "dependencies": [
+            "E2E-1"
+          ],
+          "expectedOutputs": [
+            "e2e/network_test.go",
+            "e2e/perf_test.go"
+          ],
+          "validationCommands": [
+            "go test ./e2e/... -run 'TestNetwork|TestPerf'"
+          ],
+          "contract": {
+            "version": 1,
+            "kind": "implementation",
+            "requirements": [
+              "E2E-FR-02: An opt-in network corpus test runs against a small set of real remote repositories and is skipped by default so that standard CI remains deterministic and offline.",
+              "E2E-FR-03: A performance test asserts that a typical fixture repository completes a full scan and report within the documented time budget."
+            ],
+            "acceptanceCriteria": [
+              "The network corpus test skips unless its environment variable is set",
+              "A real remote repo scans successfully when enabled",
+              "The performance test fails when a fixture exceeds the time budget",
+              "Both tests are safe to run repeatedly"
+            ],
+            "constraints": [
+              "Standard CI must remain offline; network tests are opt-in only",
+              "CONST-08: repo-ready is offline by default and performs no network I/O unless the user passes --enrich; when enrichment is requested it is additive and degrades gracefully when a feed is unreachable, so the local deterministic report always remains valid.",
+              "CONST-11: A local scan and report for a typical repository completes in under 2 seconds; probe commands each have a 5 second timeout; probing uses at most 8 concurrent workers; remote clones use depth 1; directory scanning defaults to a maximum depth of 6."
+            ],
+            "references": [
+              "docs/features/e2e-validation.md#E2E-FR-02",
+              "docs/features/e2e-validation.md#E2E-FR-03",
+              "docs/PRD.md#CONST-08",
+              "docs/PRD.md#CONST-11"
+            ]
+          },
+          "requiredCapabilities": [
+            "repository-tools"
+          ],
+          "approvalRequired": false,
+          "sourceLines": [],
+          "produces": "work.e2e-2",
+          "inputs": [
+            "work.e2e-1",
+            "work.report-6",
+            "work.scan-3",
+            "work.scan-4",
+            "work.scan-5",
+            "work.scan-6",
+            "work.probe-4"
+          ]
+        }
+      ]
+    }
+  ],
+  "warnings": [
+    "Team validation: file 'cmd/repo-ready/main.go' is owned by multiple agents (release-engineer, cli-engineer)."
+  ],
+  "responsibilityMatrixPath": "/home/mcfuzzysquirrel/Projects/repo-ready/docs/agent-responsibility-matrix.md"
+}
