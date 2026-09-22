@@ -31,9 +31,38 @@
       "completedAt": "2026-09-22T21:10:43.757Z"
     },
     "skills": {
-      "status": "pending",
+      "status": "complete",
       "inputFingerprint": "6ac500786172502efc8a52e951887f9834a821bebd0df25bebb0b6991aa2f731",
-      "outputs": []
+      "outputs": [
+        ".opencode/skills/add-detector/SKILL.md",
+        ".opencode/skills/add-catalog-entry/SKILL.md",
+        ".opencode/skills/add-probe-command/SKILL.md",
+        ".opencode/skills/run-quality-gates/SKILL.md",
+        ".opencode/skills/add-e2e-fixture/SKILL.md",
+        ".opencode/skills/record-human-review/SKILL.md"
+      ],
+      "startedAt": "2026-09-22T21:13:45.713Z",
+      "invocation": {
+        "runner": "opencode",
+        "requestedModel": "deepseek/deepseek-flash",
+        "source": "project",
+        "effectiveModel": "deepseek/deepseek-flash",
+        "inventoryVerifiedAt": "2026-09-22T20:27:17.878Z",
+        "runnerSource": "project",
+        "argv": [
+          "run",
+          "--auto",
+          "--dir",
+          "/home/mcfuzzysquirrel/Projects/repo-ready",
+          "--model",
+          "deepseek/deepseek-flash",
+          "/forge-build-project-skills Consume docs/SKILL-CANDIDATES.json. Use .opencode/skills/ and .opencode/agents/. Create or extend only planned skills, reuse unchanged packages, honor omit decisions, and run structural and per-axis review gates. Do not regenerate the team, modify its ownership or handoff, compile a manifest, or start the build. Headless: proceed with authorized defaults."
+        ],
+        "skill": "forge-build-project-skills"
+      },
+      "outputFingerprint": "4747116e2937c53ae2744580c15288413836ba20971c8a5f6bee05fb2f61cdc1",
+      "completedAt": "2026-09-22T21:17:44.829Z",
+      "noSkillsRequired": false
     }
   }
 }
