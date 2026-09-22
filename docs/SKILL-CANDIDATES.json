@@ -1,0 +1,61 @@
+{
+  "version": 1,
+  "candidates": [
+    {
+      "name": "add-detector",
+      "description": "Add one declarative-file detector to repo-ready: implement the Detector interface for a file kind, register it, preserve declared constraints verbatim, assign category/confidence, return structured errors for malformed input, and ship a table-driven fixture test under testdata/detect/ with deterministic ordering.",
+      "consumers": ["detector-engineer", "scan-engineer", "qa-engineer"],
+      "action": "create",
+      "reason": "The PRD fixes eleven v1 detectors and explicitly lists additional detectors as future work, so this process repeats across many components. It is fragile: detectors must never invent versions, must stay pure, and must be registered and fixture-tested deterministically (SCAN-FR-07, SCAN-FR-08, SCAN-FR-10, CONST-01). No existing package covers it."
+    },
+    {
+      "name": "add-catalog-entry",
+      "description": "Add a curated tool entry to the embedded install-metadata catalog: choose a stable id aligned with detector tool names, supply display name, category, an https documentation URL, and non-destructive Linux/macOS/Windows install commands, then pass loader validation, the coverage test, and the human accuracy review.",
+      "consumers": ["catalog-engineer", "probe-engineer"],
+      "action": "create",
+      "reason": "CATALOG-2 requires authoring 25-40 entries, so the process repeats many times and is fragile: unique ids, required fields, https-only URLs, all three platform commands, and an embedded/versioned data file (CATALOG-FR-01, CATALOG-FR-02, CONST-03). No existing package covers it."
+    },
+    {
+      "name": "add-probe-command",
+      "description": "Add or adjust a tool's installed-version probe mapping in repo-ready: validate the tool identifier against the catalog, add a known safe version-query invocation that runs without a shell under the 5 second timeout, and cover version-output parsing with table-driven tests.",
+      "consumers": ["probe-engineer", "catalog-engineer"],
+      "action": "create",
+      "reason": "PROBE-1 uses an explicit tool-to-command map that grows with the catalog and is security-sensitive: shell-free execution, no credential access, bounded timeout, and validated identifiers (PROBE-FR-02, CONST-09, CONST-11). The repeated, fragile nature justifies a dedicated package; none exists."
+    },
+    {
+      "name": "run-quality-gates",
+      "description": "Run the repo-ready quality gate for any change: gofmt no-diff, go vet, go test ./..., local build with version ldflag injection, and confirmation that offline tests make no network calls and opt-in tests skip by default.",
+      "consumers": ["release-engineer", "cli-engineer", "scan-engineer", "detector-engineer", "catalog-engineer", "probe-engineer", "enrichment-engineer", "tui-engineer", "qa-engineer"],
+      "action": "create",
+      "reason": "Every implementation task must pass the same gate before commit (RELEASE-FR-01, docs/features/project-foundation.md acceptance criteria), and the offline-default / opt-in-network rule is easy to violate (CONST-08). Central guidance keeps the gate identical across agents; no existing package covers it."
+    },
+    {
+      "name": "add-e2e-fixture",
+      "description": "Add a committed end-to-end fixture repository under e2e/testdata and a companion assertion: exercise single-ecosystem, monorepo/conflict, or empty-declaration behavior, assert exit codes and JSON structure, and require byte-identical repeated runs with no network or host-tool dependency.",
+      "consumers": ["qa-engineer", "detector-engineer"],
+      "action": "create",
+      "reason": "E2E-1 defines several fixture repos and the suite is expected to grow; the process is fragile because fixtures are committed source, must avoid host tools during offline tests, and must produce deterministic output (E2E-FR-01, CONST-08, SCAN-FR-10). No existing package covers it."
+    },
+    {
+      "name": "record-human-review",
+      "description": "Prepare and record a repo-ready human-review gate: assemble the per-category sample or TUI transcript evidence, capture observed results with the JSON review-file schema under docs/reviews/, list requested corrections with dispositions, and record an explicit reviewer decision without self-approving.",
+      "consumers": ["catalog-engineer", "tui-engineer", "qa-engineer"],
+      "action": "create",
+      "reason": "Two independent human-review gates (CATALOG-3, REPORT-6) share a project-specific evidence schema and the rule that agents cannot mark them approved. The repeated, structured, easy-to-fake process warrants explicit guidance; no existing package covers it."
+    },
+    {
+      "name": "parse-version-constraint",
+      "description": "Parse a declared version constraint into a loose match status for repo-ready.",
+      "consumers": ["probe-engineer"],
+      "action": "omit",
+      "reason": "This is one cohesive implementation inside internal/match with explicit boundary tests (PROBE-3); it is not a repeated cross-component process, so it belongs in probe-engineer's responsibilities rather than a reusable package."
+    },
+    {
+      "name": "add-cli-flag",
+      "description": "Add a new command-line flag to repo-ready.",
+      "consumers": ["cli-engineer"],
+      "action": "omit",
+      "reason": "The v1 flag set is closed and specified by REPORT-FR-01, so the process does not repeat. Flag parsing lives in cli-engineer's table-driven implementation and needs no separate skill."
+    }
+  ]
+}

@@ -9,6 +9,6 @@
   "keepAlive": false,
   "attach": "",
   "autoCommit": true,
-  "executionMode": "auto",
+  "executionMode": "manual",
   "selectedTaskIds": []
 }
