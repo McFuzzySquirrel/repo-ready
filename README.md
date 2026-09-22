@@ -6,6 +6,15 @@
 ![Go](https://img.shields.io/badge/go-1.27-00ADD8?logo=go&logoColor=white)
 ![Report only](https://img.shields.io/badge/behavior-report--only-success)
 
+> [!IMPORTANT]
+> **Specification stage — not implemented or released.** This repository
+> currently contains the requirements, feature specifications, agent team, and
+> project skills for `repo-ready`. There is no Go source, build, or binary yet,
+> and no release has shipped. Everything in this README describes the
+> **specified v1 design**; commands and flags will not work until the
+> implementation lands. See [CHANGELOG.md](CHANGELOG.md) and
+> [docs/releases/](docs/releases/README.md) for status.
+
 `repo-ready` is a single-binary terminal app that inspects a local or remote git
 repository, works out which tools and versions the repo expects, compares them
 against what is already installed on your machine, and hands you copy-pasteable
@@ -18,8 +27,9 @@ No README reading, no guesswork.
 > `repo-ready` only **reports**. It never installs anything and never executes
 > repository code or scripts.
 
-The v1 specification lives in [docs/PRD.md](docs/PRD.md) and
-[docs/features/](docs/features/).
+The v1 specification — the authoritative design for the planned implementation —
+lives in [docs/PRD.md](docs/PRD.md) and [docs/features/](docs/features/). Design
+rationale is recorded in [docs/adr/](docs/adr/README.md).
 
 ## Why
 
@@ -185,9 +195,10 @@ metadata.
 
 `--json` emits a single versioned object covering input metadata, scan metadata
 (including skipped paths), components, findings with declared and installed
-values, conflict declarations, and optional enrichment. Field names are stable
-across releases. See [docs/JSON-SCHEMA.md](docs/JSON-SCHEMA.md) for the full
-schema.
+values, conflict declarations, and optional enrichment. Field names are planned
+to be stable across releases. A `docs/JSON-SCHEMA.md` reference document will be
+added with the implementation; the schema and compatibility contract are
+specified in [ADR-0007](docs/adr/0007-versioned-json-and-exit-codes.md).
 
 ## Exit codes
 
@@ -201,6 +212,10 @@ schema.
 the output, and the caller decides what to do with it.
 
 ## Development
+
+> [!NOTE]
+> These build and test targets are **planned**; no `Makefile` or Go source
+> exists yet.
 
 Requires Go 1.27 or later. `git` is needed only for remote inputs.
 
@@ -217,9 +232,11 @@ and a performance test guards the 2-second budget for a typical local scan.
 
 ## Documentation
 
-- [Product requirements](docs/PRD.md)
-- [Feature specifications](docs/features/)
-- [JSON schema](docs/JSON-SCHEMA.md)
+- [User guide](docs/user-guide.md)
+- [Administrator guide](docs/admin-guide.md)
+- [Architecture decisions](docs/adr/README.md)
+- [Changelog](CHANGELOG.md) and [release notes](docs/releases/README.md)
+- [Product requirements](docs/PRD.md) and [feature specifications](docs/features/)
 
 ## Security and privacy
 
