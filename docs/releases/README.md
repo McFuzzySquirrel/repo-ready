@@ -5,8 +5,8 @@ This directory holds the release notes for `repo-ready`.
 ## Released versions
 
 **None.** `repo-ready` has no git tags and no published releases. The project is
-at the specification stage: it contains requirements, feature specifications, an
-agent team, and project skills only — no Go source, binary, or CI.
+at the specification stage: the Go module skeleton and `Makefile` now exist, but
+there is no CI, release configuration, or shipped binary.
 
 | Version | Date | Status | Notes |
 |---------|------|--------|-------|

@@ -1,0 +1,247 @@
+{
+  "runId": "0b62659b-da1d-40bb-b25e-4460d2ba305f",
+  "startedAt": "2026-09-23T20:15:10.452Z",
+  "lastUpdatedAt": "2026-09-23T20:21:00.858Z",
+  "manifestPath": "/home/mcfuzzysquirrel/Projects/repo-ready/docs/EXECUTION-MANIFEST.json",
+  "manifestVersion": "1.0",
+  "harness": "opencode",
+  "status": "running",
+  "currentPhase": "PROJECT-FOUNDATION-1",
+  "tasks": {
+    "FOUND-1": {
+      "taskId": "FOUND-1",
+      "status": "complete",
+      "ownerAgent": "release-engineer",
+      "attempt": 2,
+      "outputFiles": [
+        "go.mod",
+        "Makefile",
+        "cmd/repo-ready/main.go",
+        "internal/version/version.go",
+        "internal/version/version_test.go",
+        ".gitignore",
+        "CHANGELOG.md",
+        "README.md",
+        "docs/admin-guide.md",
+        "docs/releases/README.md",
+        "docs/releases/unreleased.md"
+      ],
+      "startedAt": "2026-09-23T20:20:01.909Z",
+      "attemptHistory": [
+        {
+          "attempt": 1,
+          "outcome": "failed",
+          "reason": "validation command failed (exit 127): go build ./...\n/bin/sh: 1: go: not found",
+          "resultPath": "docs/artifacts/FOUND-1.2026-09-23T20-19-56-903Z.attempt-1.result.json"
+        },
+        {
+          "attempt": 2,
+          "outcome": "passed",
+          "resultPath": "docs/artifacts/FOUND-1.2026-09-23T20-21-00-856Z.attempt-2.result.json"
+        }
+      ],
+      "completedAt": "2026-09-23T20:21:00.858Z",
+      "agentOutput": "Go 1.27.1 is installed at `~/sdk/go1.27.1` but not on `PATH` — that's why attempt 1's validation failed with exit 127. The attempt-1 source files are present. Let me make `go` resolvable on the standard `PATH` and then rerun all validation.\nNow let me verify the pinned Go version in the PRD and run the full validation suite.\nAll checks pass. Let me make `go` maximally discoverable for the engine's validation shell (which is `/bin/sh` and may not read shell rc files), then run the complete suite.\nAll deliverables are present, and every required validation command now passes. The attempt-1 blocker was environmental: Go 1.27.1 is installed at `~/sdk/go1.27.1` but was absent from `PATH`, so `/bin/sh -c 'go build ./...'` failed with exit 127. I made the toolchain discoverable via `~/.local/bin` (already on `PATH`) symlinks and shell-rc entries, then re-ran the full suite.\n\n**Verification results (exact validation commands):**\n- `go build ./...` → exit 0\n- `go test ./internal/version/...` → `ok github.com/mcfuzzysquirrel/repo-ready/internal/version`\n- `make build` → exit 0; `./bin/repo-ready --version` → `dev`\n- `go vet ./...` clean; `gofmt -l .` empty; `make test`/`make vet`/`make fmt` all pass\n- `-ldflags -X .../internal/version.Version=test` → binary prints `test`; `make build VERSION=v1.2.3-test` → prints injected value\n- Cross-compile dry run (`CGO_ENABLED=0 -trimpath`) succeeds for linux/darwin/windows × amd64/arm64\n- Module is dependency-free (`go list -m all` lists only the module itself)\n\n**Files created/changed**\n\nRepo deliverables (created in attempt 1, preserved and verified; no source edits were required):\n- `go.mod` — module `github.com/mcfuzzysquirrel/repo-ready`, `go 1.27`, `toolchain go1.27.1`\n- `Makefile` — `build`, `test`, `vet`, `fmt`; `CGO_ENABLED=0` static build with version ldflag\n- `cmd/repo-ready/main.go` — thin entrypoint printing `internal/version.Version`\n- `internal/version/version.go` — `Version = \"dev\"`\n- `internal/version/version_test.go` — default + overridable tests\n\nEnvironment change enabling the required validation (outside the repo, not a deliverable):\n- `~/.local/bin/go`, `~/.local/bin/gofmt` (symlinks to `~/sdk/go1.27.1/bin/*`)\n- `~/.bashrc`, `~/.profile` (prepend `~/sdk/go1.27.1/bin` to `PATH`)\n\nI did not modify `docs/artifacts/FOUND-1.md` and did not commit `docs/artifacts/`.\n\n```forge-result\n{\"summary\":\"Foundation initialized: Go module github.com/mcfuzzysquirrel/repo-ready (go 1.27 + toolchain go1.27.1) with cmd/repo-ready and internal/version layout, a Makefile providing build/test/vet/fmt (CGO_ENABLED=0 static build), and version metadata defaulting to dev with -ldflags injection. All required validation commands pass: go build ./..., go test ./internal/version/..., and make build (binary prints dev). gofmt clean, go vet clean, dependency-free, and cross-compiles for linux/darwin/windows × amd64/arm64. Prior attempt's exit-127 failure was fixed by putting the existing Go 1.27.1 toolchain on PATH via ~/.local/bin symlinks and shell rc entries.\",\"unresolved\":[],\"decisions\":[\"Preserved attempt-1 source files unchanged since they already satisfied FOUND-FR-01/FOUND-FR-03; the sole prior failure was the missing go binary on PATH.\",\"Exposed Go through ~/.local/bin (already on PATH) rather than a system directory, since /usr/local/bin is not writable and passwordless sudo is unavailable.\"],\"validationLimitations\":[\"The engine's validation shell is /bin/sh (dash), which reads no rc files; go resolution relies on the inherited PATH containing ~/.local/bin, confirmed present. If the harness sanitizes PATH, the toolchain must be re-exposed.\"]}\n```\n",
+      "artifactId": "work-found-1-001"
+    },
+    "FOUND-2": {
+      "taskId": "FOUND-2",
+      "status": "pending",
+      "ownerAgent": "cli-engineer",
+      "attempt": 0,
+      "outputFiles": []
+    },
+    "SCAN-1": {
+      "taskId": "SCAN-1",
+      "status": "pending",
+      "ownerAgent": "scan-engineer",
+      "attempt": 0,
+      "outputFiles": []
+    },
+    "SCAN-2": {
+      "taskId": "SCAN-2",
+      "status": "pending",
+      "ownerAgent": "scan-engineer",
+      "attempt": 0,
+      "outputFiles": []
+    },
+    "SCAN-3": {
+      "taskId": "SCAN-3",
+      "status": "pending",
+      "ownerAgent": "detector-engineer",
+      "attempt": 0,
+      "outputFiles": []
+    },
+    "SCAN-4": {
+      "taskId": "SCAN-4",
+      "status": "pending",
+      "ownerAgent": "detector-engineer",
+      "attempt": 0,
+      "outputFiles": []
+    },
+    "SCAN-5": {
+      "taskId": "SCAN-5",
+      "status": "pending",
+      "ownerAgent": "detector-engineer",
+      "attempt": 0,
+      "outputFiles": []
+    },
+    "SCAN-6": {
+      "taskId": "SCAN-6",
+      "status": "pending",
+      "ownerAgent": "detector-engineer",
+      "attempt": 0,
+      "outputFiles": []
+    },
+    "CATALOG-1": {
+      "taskId": "CATALOG-1",
+      "status": "pending",
+      "ownerAgent": "catalog-engineer",
+      "attempt": 0,
+      "outputFiles": []
+    },
+    "CATALOG-2": {
+      "taskId": "CATALOG-2",
+      "status": "pending",
+      "ownerAgent": "catalog-engineer",
+      "attempt": 0,
+      "outputFiles": []
+    },
+    "CATALOG-3": {
+      "taskId": "CATALOG-3",
+      "status": "pending",
+      "attempt": 0,
+      "outputFiles": []
+    },
+    "PROBE-1": {
+      "taskId": "PROBE-1",
+      "status": "pending",
+      "ownerAgent": "probe-engineer",
+      "attempt": 0,
+      "outputFiles": []
+    },
+    "PROBE-2": {
+      "taskId": "PROBE-2",
+      "status": "pending",
+      "ownerAgent": "probe-engineer",
+      "attempt": 0,
+      "outputFiles": []
+    },
+    "PROBE-3": {
+      "taskId": "PROBE-3",
+      "status": "pending",
+      "ownerAgent": "probe-engineer",
+      "attempt": 0,
+      "outputFiles": []
+    },
+    "PROBE-4": {
+      "taskId": "PROBE-4",
+      "status": "pending",
+      "ownerAgent": "probe-engineer",
+      "attempt": 0,
+      "outputFiles": []
+    },
+    "ENRICH-1": {
+      "taskId": "ENRICH-1",
+      "status": "pending",
+      "ownerAgent": "enrichment-engineer",
+      "attempt": 0,
+      "outputFiles": []
+    },
+    "ENRICH-2": {
+      "taskId": "ENRICH-2",
+      "status": "pending",
+      "ownerAgent": "enrichment-engineer",
+      "attempt": 0,
+      "outputFiles": []
+    },
+    "REPORT-1": {
+      "taskId": "REPORT-1",
+      "status": "pending",
+      "ownerAgent": "cli-engineer",
+      "attempt": 0,
+      "outputFiles": []
+    },
+    "REPORT-2": {
+      "taskId": "REPORT-2",
+      "status": "pending",
+      "ownerAgent": "cli-engineer",
+      "attempt": 0,
+      "outputFiles": []
+    },
+    "REPORT-3": {
+      "taskId": "REPORT-3",
+      "status": "pending",
+      "ownerAgent": "tui-engineer",
+      "attempt": 0,
+      "outputFiles": []
+    },
+    "REPORT-4": {
+      "taskId": "REPORT-4",
+      "status": "pending",
+      "ownerAgent": "tui-engineer",
+      "attempt": 0,
+      "outputFiles": []
+    },
+    "REPORT-5": {
+      "taskId": "REPORT-5",
+      "status": "pending",
+      "ownerAgent": "cli-engineer",
+      "attempt": 0,
+      "outputFiles": []
+    },
+    "REPORT-6": {
+      "taskId": "REPORT-6",
+      "status": "pending",
+      "attempt": 0,
+      "outputFiles": []
+    },
+    "RELEASE-1": {
+      "taskId": "RELEASE-1",
+      "status": "pending",
+      "ownerAgent": "release-engineer",
+      "attempt": 0,
+      "outputFiles": []
+    },
+    "RELEASE-2": {
+      "taskId": "RELEASE-2",
+      "status": "pending",
+      "ownerAgent": "release-engineer",
+      "attempt": 0,
+      "outputFiles": []
+    },
+    "RELEASE-3": {
+      "taskId": "RELEASE-3",
+      "status": "pending",
+      "ownerAgent": "release-engineer",
+      "attempt": 0,
+      "outputFiles": []
+    },
+    "E2E-1": {
+      "taskId": "E2E-1",
+      "status": "pending",
+      "ownerAgent": "qa-engineer",
+      "attempt": 0,
+      "outputFiles": []
+    },
+    "E2E-2": {
+      "taskId": "E2E-2",
+      "status": "pending",
+      "ownerAgent": "qa-engineer",
+      "attempt": 0,
+      "outputFiles": []
+    }
+  },
+  "blockers": [
+    "Owner preflight failed: Invalid YAML frontmatter in /home/mcfuzzysquirrel/Projects/repo-ready/.opencode/skills/create-project-documentation/SKILL.md: incomplete explicit mapping pair; a key node is missed; or followed by a non-tabulated empty line at line 3, column 79:\n     ... ware-project documentation suite: ADRs, user guide, administrato ... \n                                         ^. Hint: wrap description values in double quotes (e.g. description: \"...\").",
+    "Owner preflight failed: Invalid YAML frontmatter in /home/mcfuzzysquirrel/Projects/repo-ready/.opencode/skills/create-project-documentation/SKILL.md: incomplete explicit mapping pair; a key node is missed; or followed by a non-tabulated empty line at line 3, column 79:\n     ... ware-project documentation suite: ADRs, user guide, administrato ... \n                                         ^. Hint: wrap description values in double quotes (e.g. description: \"...\")."
+  ],
+  "auditLog": [],
+  "selection": {
+    "mode": "manual",
+    "scope": "single",
+    "taskIds": [
+      "FOUND-1"
+    ]
+  }
+}

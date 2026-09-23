@@ -3,9 +3,10 @@
 **Release date:** Not released. Specification stage as of 2026-09-22.
 
 > [!WARNING]
-> This is a **draft of planned scope**, not a release. Nothing described here
-> is implemented, and no artifact is available. It exists so the scope is
-> reviewable before implementation begins.
+> This is a **draft of planned scope**, not a release. Only the Go module
+> skeleton and build tooling exist so far; none of the capabilities described
+> here are implemented, and no artifact is available. It exists so the scope is
+> reviewable before implementation completes.
 
 ## Summary
 
@@ -62,10 +63,10 @@ procedures will be defined once the first release exists.
 
 ## Validation
 
-**Not validated.** No tests exist. The planned validation is an offline,
-deterministic end-to-end suite over committed fixture repositories, an opt-in
-env-gated network corpus that skips by default, and a performance test guarding
-the 2-second budget for a typical local scan. See
+**Not validated.** Only the `internal/version` unit test exists. The planned
+validation is an offline, deterministic end-to-end suite over committed fixture
+repositories, an opt-in env-gated network corpus that skips by default, and a
+performance test guarding the 2-second budget for a typical local scan. See
 [`docs/features/e2e-validation.md`](../features/e2e-validation.md). Do not cite
 any test result for this project until those suites actually run.
 

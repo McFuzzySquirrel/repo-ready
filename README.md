@@ -7,13 +7,13 @@
 ![Report only](https://img.shields.io/badge/behavior-report--only-success)
 
 > [!IMPORTANT]
-> **Specification stage — not implemented or released.** This repository
-> currently contains the requirements, feature specifications, agent team, and
-> project skills for `repo-ready`. There is no Go source, build, or binary yet,
-> and no release has shipped. Everything in this README describes the
-> **specified v1 design**; commands and flags will not work until the
-> implementation lands. See [CHANGELOG.md](CHANGELOG.md) and
-> [docs/releases/](docs/releases/README.md) for status.
+> **Specification stage — CLI not implemented or released.** The Go module,
+> package skeleton, and `Makefile` now exist (see [Development](#development)),
+> but the scanning behavior described below is still under construction: running
+> the binary only reports its version, and no release has shipped. Everything
+> else in this README describes the **specified v1 design**. See
+> [CHANGELOG.md](CHANGELOG.md) and [docs/releases/](docs/releases/README.md) for
+> status.
 
 `repo-ready` is a single-binary terminal app that inspects a local or remote git
 repository, works out which tools and versions the repo expects, compares them
@@ -214,8 +214,9 @@ the output, and the caller decides what to do with it.
 ## Development
 
 > [!NOTE]
-> These build and test targets are **planned**; no `Makefile` or Go source
-> exists yet.
+> The Go module skeleton and `Makefile` now exist, so these four targets work
+> today. The scanning behavior they build is still being implemented; see the
+> status note at the top of this file.
 
 Requires Go 1.27 or later. `git` is needed only for remote inputs.
 

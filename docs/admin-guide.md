@@ -44,7 +44,7 @@ project is documented as `Unreleased`.
 
 ## Installation
 
-### Build from source (planned)
+### Build from source
 
 ```bash
 git clone https://github.com/McFuzzySquirrel/repo-ready.git
@@ -52,10 +52,11 @@ cd repo-ready
 make build
 ```
 
-Specified Makefile targets (RELEASE/Foundation scope): `build`, `test`, `vet`,
-and `fmt`.
+Makefile targets (Foundation scope): `build`, `test`, `vet`, and `fmt`. The
+binary is written to `bin/repo-ready` with `CGO_ENABLED=0` (static, no runtime
+dependencies).
 
-### Version injection (planned)
+### Version injection
 
 ```bash
 go build -ldflags "-X github.com/mcfuzzysquirrel/repo-ready/internal/version.Version=<version>" ./cmd/repo-ready

@@ -1,6 +1,6 @@
 ---
 name: create-project-documentation
-description: Create or refresh a complete software-project documentation suite: ADRs, user guide, administrator guide, changelog, and versioned release notes. Use when a project needs launch documentation, a documentation audit, release preparation, or consistent operational and user-facing docs.
+description: "Create or refresh a complete software-project documentation suite: ADRs, user guide, administrator guide, changelog, and versioned release notes. Use when a project needs launch documentation, a documentation audit, release preparation, or consistent operational and user-facing docs."
 ---
 
 # Create Project Documentation

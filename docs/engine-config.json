@@ -10,5 +10,8 @@
   "attach": "",
   "autoCommit": true,
   "executionMode": "manual",
-  "selectedTaskIds": []
+  "selectionScope": "single",
+  "selectedTaskIds": [
+    "FOUND-1"
+  ]
 }
